@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -10,50 +10,23 @@ using Aurora.Properties;
 using Lib;
 using HarmonyLib;
 
-
 namespace SubGFByDefault
 {
     public class SubGFByDefault : AuroraPatch.Patch
     {
         public override string Description => "Load All Sub-Units defaults to ticked with this mod active.";
-        
+        public override IEnumerable<string> Dependencies => new[] { "Lib" };
+
         protected override void Loaded(Harmony harmony)
         {
-            Type fleetwindow = AuroraAssembly.GetType("fs");
-            IEnumerable<MethodInfo> alltheas = fleetwindow.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance).Where(a => a.Name == "a");
-            HarmonyMethod subGFbydefaultPFMeth = new HarmonyMethod(GetType().GetMethod("SubGFPostfix", AccessTools.all));
-            MethodInfo methodtopostfix = null;
-
-            foreach (MethodInfo thismethod in alltheas)
-            {
-                if (thismethod.GetParameters().Length == 0)
-                {
-                    if (thismethod.ReturnType == typeof(void)) {
-                        methodtopostfix = thismethod;
-                    }
-                }
-            }
-
-            if (methodtopostfix != null)
-            {
-                LogInfo("Now patching fs.cs fleet window");
-                harmony.Patch(methodtopostfix, postfix: subGFbydefaultPFMeth);
-            }
-            else
-            {
-                LogInfo("Didn't patch fs.cs fleet window as methodtopostfix is null");
-            }
-
-
-
-     
-            
+            var lib = GetDependency<Lib.Lib>("Lib");
+            lib.RegisterEventHandler(AuroraType.FleetWindowForm, "Shown", GetType().GetMethod("ShownHandler", AccessTools.all));
         }
 
-        private static void SubGFPostfix(Form __instance)
+        private static void ShownHandler(object sender, EventArgs e)
         {
-            CheckBox SubGF = __instance.Controls.Find("chkLoadSubUnits", true)[0] as CheckBox;
-            SubGF.Checked = true;
+            var subgf = UIManager.GetControlByName<CheckBox>((Form)sender, "chkLoadSubUnits");
+            subgf.Checked = true;
         }
     }
 }
